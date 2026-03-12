@@ -1,50 +1,79 @@
-# Instructions to run the code
+# MOSPOpenMP
 
-## SYCL Project
+## Build
 
-### Hellblender cluster dependency 
+From the project root:
 
-ssh \<toYourMachine\>
+```
+make
+```
 
-srun -p gpu --gres gpu:A100:1 -N 1 --ntasks-per-node 8 -t 02:00:00 --mem 200G --pty /bin/bash
+## Run
 
-module avail 
-module load cuda/11.8.0_gcc_9.5.0
-module load cmake/3.26.3_gcc_9.5.0
-module load miniconda3
-conda create -n sycl_env  (environment location: /home/akkcm/.conda/envs/sycl_env)
-source activate sycl_env
-python -m pip install ninja
-export DPCPP_HOME=~/sycl_workspace
-mkdir $DPCPP_HOME
-cd $DPCPP_HOME
-git clone https://github.com/intel/llvm -b sycl
-python $DPCPP_HOME/llvm/buildbot/configure.py --cudaexit
-python $DPCPP_HOME/llvm/buildbot/compile.py
+From the project root:
 
-Every time after openinng new window run below commands:
-export DPCPP_HOME=~/sycl_workspace && export PATH=$DPCPP_HOME/llvm/build/bin:$PATH && export LD_LIBRARY_PATH=$DPCPP_HOME/llvm/build/lib:$LD_LIBRARY_PATH && cd sycl_workspace/GPUMultiObjective/tools/
+```
+./bin/main
+```
 
+Or build and run in one step:
 
-### Building the SYCL project and run
-clang++ -fsycl -fsycl-targets=nvptx64-nvidia-cuda SYCL_Final.cpp -o SYCL_Final && ./SYCL_Final
+```
+make run
+```
 
-## OpenMP project
+The app writes the output graph to:
+- `data/graph.mtx`
+- `data/originalGraph/graphCsrRowPtr.txt`
+- `data/originalGraph/graphCsrColInd.txt`
+- `data/originalGraph/graphCsrValues.txt`
 
-g++ -fopenmp -std=c++11 -o program main.cpp
+Then it applies `output/changedEdges/*.txt` changes and writes:
+- `data/updatedGraph/updatedGraphCsrRowPtr.txt`
+- `data/updatedGraph/updatedGraphCsrColInd.txt`
+- `data/updatedGraph/updatedGraphCsrValues.txt`
 
-## Base paper
+Then it runs Dijkstra and writes original-graph results to:
+- `output/distancesTrees/distances.txt`
+- `output/distancesTrees/SSSPTree.txt`
+- `output/distancesTrees/distancesCsr.txt`
+- `output/distancesTrees/SSSPTreeCsr.txt`
 
-### Clone the library
-git clone git@github.com:SMShovan/multicrit.git
+Then it runs Dijkstra on the updated CSR graph and writes:
+- `output/updatedDistancesTrees/updatedDistancesCsr.txt`
+- `output/updatedDistancesTrees/updatedSSSPTreeCsr.txt`
 
-### Source the libraries 
-source ../lib/tbb/bin/tbbvars.sh intel64
-### reflect changes
-make configure
-### make 
-make all
-### run scripts
-From scripts/ 
-run build_binaries.sh
+Then it runs the Sequential SOSP Update algorithm (incremental update without
+recomputing Dijkstra from scratch) and writes:
+- `output/sospUpdateDistancesTrees/distancesCsr.txt`
+- `output/sospUpdateDistancesTrees/SSSPTreeCsr.txt`
 
+It also generates edge-change files:
+- `output/changedEdges/insert.txt`
+- `output/changedEdges/delete.txt`
+
+## Test Cases
+
+The app also generates 10 deterministic test cases under `tests/testCaseN/`, each containing:
+- `originalGraph/` (CSR files)
+- `changedEdges/` (insert.txt, delete.txt)
+- `updatedGraph/` (CSR files after applying changes)
+- `expected/` (ground truth distances and SSSP trees for original and updated graphs,
+  plus SOSP update algorithm output for comparison)
+
+These are seeded for reproducibility and vary across graph size, objective count,
+change ratio, and Dijkstra objective index.
+
+## Doxygen
+
+Generate docs from the project root:
+
+```
+doxygen Doxyfile
+```
+
+Open the HTML output:
+
+```
+open html/index.html
+```

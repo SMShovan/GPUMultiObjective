@@ -1,0 +1,9 @@
+PROJECT_NAME           = "MOSPOpenMP"
+OUTPUT_DIRECTORY       = .
+INPUT                  = src headers
+RECURSIVE              = YES
+FILE_PATTERNS          = *.cpp *.h
+EXTRACT_ALL            = YES
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+QUIET                  = YES
